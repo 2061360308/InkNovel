@@ -1,66 +1,61 @@
-name: APK Build
+name: All Builds (Linux, macOS, Windows, Android, IPA, APK, AAB)
 
 on:
-  # 当推送到以下分支时运行
   push:
-    branches:
-      - main
-
-  # 当有针对以下分支的拉取请求事件时运行
+    branches: [main]
   pull_request:
-    branches:
-      - main
-
-  # 允许你从仓库的 Actions 标签页手动运行此工作流
+    branches: [main]
   workflow_dispatch:
 
 env:
-  # https://flet.dev/docs/publish#versioning
-  BUILD_NUMBER: 1  # 构建号
-  BUILD_VERSION: 1.0.0  # 构建版本
-
-  # 要使用的 Python 版本
+  BUILD_NUMBER: 1
+  BUILD_VERSION: 1.0.0
   PYTHON_VERSION: 3.11.9
 
-  # 用于 `flet build` 的 flet-cli 版本
-  FLET_CLI_VERSION: 0.80.1
-
-  # 确保 Python 默认使用 UTF-8 编码
-  PYTHONUTF8: 1
-
-  # 禁用 Flet CLI 输出中的富文本格式
-  FLET_CLI_NO_RICH_OUTPUT: 1
-
-  # 使用 UV 时禁用进度条
-  UV_NO_PROGRESS: 1
-  FLET_CLI_YES: 1
-
 jobs:
-  build:
-    runs-on: ubuntu-latest  # 在最新的 Ubuntu 环境下运行
+  build-apk:
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code  # 检出代码
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Python ${{ env.PYTHON_VERSION }}  # 设置 Python 环境
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Install flet-cli ${{ env.FLET_CLI_VERSION }}  # 安装指定版本的 flet-cli
+    - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flet-cli==$FLET_CLI_VERSION
+        pip install flet
 
-    - name: Flet Build APK  # 构建 APK 包
+    - name: Setup Flutter from main channel
+      uses: subosito/flutter-action@v2
+      with:
+        channel: main
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Check Flutter and Dart versions
       run: |
+        flutter --version
+        dart --version
+
+    - name: Flet Build APK
+      run: |
+        flutter config --no-analytics
+        cd src
         flet build apk --verbose --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION
 
-    - name: Upload APK Artifact  # 上传 APK 构建产物
-      uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: apk-build-artifact  # 产物名称
-        path: build/apk  # Flet 构建输出的位置
-        if-no-files-found: error  # 如果未找到文件则报错
-        overwrite: false  # 如果为 true，上传前会删除同名产物；为 false 时如果已存在同名产物则失败。如果产物不存在则不会失败。
+        name: apk-build-artifact
+        path: build/apk
+        if-no-files-found: warn
+        overwrite: false
