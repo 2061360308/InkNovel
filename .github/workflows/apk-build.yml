@@ -33,6 +33,7 @@ env:
 
   # 使用 UV 时禁用进度条
   UV_NO_PROGRESS: 1
+  FLET_CLI_YES: 1
 
 jobs:
   build:
